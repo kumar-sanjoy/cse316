@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "AVR",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "F_CPU=1000000UL",
+                "__AVR_ATmega32__"
+            ],
+            "compilerPath": "/opt/homebrew/bin/avr-gcc",
+            "compilerArgs": [
+                "-mmcu=atmega32"
+            ],
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-arm64"
+        }
+    ],
+    "version": 4
+}
