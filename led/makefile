@@ -1,18 +1,16 @@
-# MCU settings
-MCU     = atmega32
-F_CPU   = 1000000UL
+MCU = atmega32
+# ATmega32 factory-default fuses select the internal RC oscillator with
+# no clock divider, so it really does run at 1MHz.
+F_CPU = 1000000UL
 
-# Tools
-CC      = avr-gcc
+CC = avr-gcc
 OBJCOPY = avr-objcopy
-SIZE    = avr-size
+SIZE = avr-size
 PROGRAMMER = usbasp
 
-# Files
-TARGET  = main
+TARGET = main
 
-# Compiler flags
-CFLAGS  = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os -Wall
+CFLAGS = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -Os -Wall
 
 .PHONY: all flash clean
 
@@ -26,7 +24,7 @@ $(TARGET).hex: $(TARGET).elf
 	$(SIZE) $<
 
 flash: $(TARGET).hex
-	avrdude -c $(PROGRAMMER) -p m32 -U flash:w:$(TARGET).hex
+	avrdude -c $(PROGRAMMER) -p m32 -B 200 -F -U flash:w:$(TARGET).hex:i
 
 clean:
 	rm -f *.elf *.hex
