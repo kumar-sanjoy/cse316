@@ -11,7 +11,7 @@ int main(void)
 
     while (1)
     {
-        PORTB ^= (1 << PB1);
+        PORTB ^= (1 << PB0);
         _delay_ms(500);
     }
 }
