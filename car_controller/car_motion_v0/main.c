@@ -3,6 +3,7 @@
 #endif
 
 #include <avr/io.h>
+#include <util/delay.h>
 
 #define BAUD 9600
 #define MYUBRR ((F_CPU / (8UL * BAUD)) - 1)
@@ -30,6 +31,9 @@
 
 #define SPEED_HIGH_DRIVE  255
 #define SPEED_HIGH_TURN   220
+
+// Forward pulse duration while "shooting" (ms)
+#define SHOOT_PULSE_MS    100
 
 // ==================================================
 // UART
@@ -174,6 +178,26 @@ void car_stop(void)
 }
 
 // ==================================================
+// Shoot: brief forward pulse, then resume whatever
+// motion was active beforehand (or stop, if idle)
+// ==================================================
+void car_shoot(uint8_t drive_speed, uint8_t turn_speed, char resume_motion)
+{
+    // Push pulse always fires at full power, regardless of power mode
+    car_forward(SPEED_HIGH_DRIVE);
+    _delay_ms(SHOOT_PULSE_MS);
+
+    switch (resume_motion)
+    {
+        case '2': car_forward(drive_speed);  break;
+        case '8': car_backward(drive_speed); break;
+        case '4': car_turn_left(turn_speed); break;
+        case '6': car_turn_right(turn_speed); break;
+        default:  car_stop();                break;
+    }
+}
+
+// ==================================================
 // Main Execution
 // ==================================================
 int main(void)
@@ -188,6 +212,12 @@ int main(void)
     // Power Mode: 0 = Low Power, 1 = High Power (defaults to Low Power)
     uint8_t is_high_power = 0;
     char current_motion = '0';
+
+    // Set right after a shoot pulse; suppresses the very next STOP
+    // command, since controllers commonly send '0' on ANY button
+    // release (including the push button), which would otherwise
+    // wrongly cancel a direction that is still being held.
+    uint8_t suppress_next_stop = 0;
 
     while (1)
     {
@@ -223,31 +253,49 @@ int main(void)
                     case '2':
                         // FRONT (FORWARD)
                         current_motion = '2';
+                        suppress_next_stop = 0;
                         car_forward(drive_speed);
                         break;
 
                     case '8':
                         // BACK (REVERSE)
                         current_motion = '8';
+                        suppress_next_stop = 0;
                         car_backward(drive_speed);
                         break;
 
                     case '4':
                         // LEFT TURN
                         current_motion = '4';
+                        suppress_next_stop = 0;
                         car_turn_left(turn_speed);
                         break;
 
                     case '6':
                         // RIGHT TURN
                         current_motion = '6';
+                        suppress_next_stop = 0;
                         car_turn_right(turn_speed);
                         break;
 
                     case '0':
-                        // STOP
-                        current_motion = '0';
-                        car_stop();
+                        // STOP (unless this is the spurious release-stop
+                        // from the push button that was just pressed)
+                        if (suppress_next_stop)
+                        {
+                            suppress_next_stop = 0;
+                        }
+                        else
+                        {
+                            current_motion = '0';
+                            car_stop();
+                        }
+                        break;
+
+                    case '1':
+                        // SHOOT (brief forward pulse, then resume prior motion)
+                        car_shoot(drive_speed, turn_speed, current_motion);
+                        suppress_next_stop = 1;
                         break;
 
                     default:
